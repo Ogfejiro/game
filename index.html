@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spin A Win - Web3 Game</title>
+    <style>
+        :root {
+            --primary-green: #1a936f;
+            --dark-blue: #114b5f;
+            --light-green: #88d498;
+            --light-blue: #1d6fa5;
+            --red: #e63946;
+            --white: #f1faee;
+            --gray: #e5e5e5;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--dark-blue) 0%, var(--primary-green) 100%);
+            color: var(--white);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            justify-content: center;
+        }
+
+        .game-section, .profile-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .game-section {
+            flex: 2;
+            min-width: 300px;
+        }
+
+        .profile-section {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--light-green);
+        }
+
+        .wheel-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 0 auto 30px;
+        }
+
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                from 0deg,
+                #ff6b6b 0deg 30deg,
+                #4ecdc4 30deg 60deg,
+                #45b7d1 60deg 90deg,
+                #96ceb4 90deg 120deg,
+                #feca57 120deg 150deg,
+                #ff9ff3 150deg 180deg,
+                #54a0ff 180deg 210deg,
+                #5f27cd 210deg 240deg,
+                #00d2d3 240deg 270deg,
+                #ff9f43 270deg 300deg,
+                #10ac84 300deg 330deg,
+                #ee5a24 330deg 360deg
+            );
+            position: relative;
+            transition: transform 4s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .wheel-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            background: var(--dark-blue);
+            border-radius: 50%;
+            z-index: 2;
+            border: 5px solid var(--white);
+        }
+
+        .pointer {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 40px;
+            background: var(--red);
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            z-index: 3;
+        }
+
+        .spin-btn {
+            display: block;
+            margin: 20px auto;
+            padding: 12px 30px;
+            background: var(--light-green);
+            color: var(--dark-blue);
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .spin-btn:hover {
+            background: var(--white);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .spin-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .prizes {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .prize-item {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .prize-item:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .prize-item.selected {
+            border-color: var(--light-green);
+            background: rgba(26, 147, 111, 0.3);
+            transform: scale(1.05);
+        }
+
+        .prize-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .prize-value {
+            color: var(--light-green);
+            font-size: 0.9rem;
+        }
+
+        .ticket-price {
+            font-size: 0.8rem;
+            margin-top: 5px;
+            color: var(--light-blue);
+        }
+
+        .numbers-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 8px;
+            margin: 20px 0;
+        }
+
+        .number {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .available {
+            background: var(--primary-green);
+        }
+
+        .taken {
+            background: var(--red);
+            cursor: not-allowed;
+        }
+
+        .selected {
+            background: var(--light-blue);
+            transform: scale(1.1);
+        }
+
+        .profile-info {
+            margin-bottom: 20px;
+        }
+
+        .balance {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--light-green);
+            margin: 10px 0;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .action-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: var(--light-blue);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:hover {
+            background: var(--primary-green);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--dark-blue);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: var(--light-green);
+        }
+
+        .close-modal {
+            float: right;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--white);
+        }
+
+        .result-message {
+            text-align: center;
+            font-size: 1.2rem;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .win {
+            color: var(--light-green);
+            border: 2px solid var(--light-green);
+        }
+
+        .lose {
+            color: var(--red);
+            border: 2px solid var(--red);
+        }
+
+        .selected-prize-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .numbers-grid {
+                grid-template-columns: repeat(8, 1fr);
+            }
+            
+            .wheel-container {
+                width: 250px;
+                height: 250px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .numbers-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .prizes {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Spin A Win</h1>
+            <p class="tagline">Web3 Gaming Experience - Select Your Prize!</p>
+        </header>
+
+        <div class="main-content">
+            <div class="game-section">
+                <h2 class="section-title">Game Board</h2>
+                
+                <div class="wheel-container">
+                    <div class="pointer"></div>
+                    <div class="wheel" id="wheel">
+                        <div class="wheel-center"></div>
+                    </div>
+                </div>
+                
+                <button class="spin-btn" id="spinBtn" disabled>Spin the Wheel</button>
+                
+                <div class="result-message" id="resultMessage"></div>
+                
+                <div class="selected-prize-info" id="selectedPrizeInfo" style="display: none;">
+                    <h3>Selected Prize: <span id="selectedPrizeName">None</span></h3>
+                    <p>Ticket Price: $<span id="selectedPrizePrice">0</span></p>
+                </div>
+                
+                <h3 class="section-title">Available Numbers</h3>
+                <div class="numbers-grid" id="numbersGrid">
+                    <!-- Numbers will be generated by JavaScript -->
+                </div>
+                
+                <h3 class="section-title">Select Your Prize</h3>
+                <div class="prizes" id="prizesContainer">
+                    <!-- Prizes will be generated by JavaScript -->
+                </div>
+            </div>
+            
+            <div class="profile-section">
+                <h2 class="section-title">Player Profile</h2>
+                
+                <div class="profile-info">
+                    <p>Welcome, <span id="playerName">Player</span>!</p>
+                    <div class="balance">$<span id="balance">100</span></div>
+                    <p>Tickets Purchased: <span id="ticketsCount">0</span></p>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="action-btn" id="withdrawBtn">Withdraw Funds</button>
+                    <button class="action-btn" id="transferBtn">Transfer Funds</button>
+                    <button class="action-btn" id="cryptoBtn">Crypto Options</button>
+                    <button class="action-btn" id="addressBtn">Delivery Address</button>
+                </div>
+                
+                <div class="form-group">
+                    <label for="walletAddress">Wallet Address</label>
+                    <input type="text" id="walletAddress" placeholder="0x..." value="0x1a2b3c4d5e6f7g8h9i0j">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal" id="purchaseModal">
+        <div class="modal-content">
+            <span class="close-modal" id="closePurchaseModal">&times;</span>
+            <h3 class="modal-title">Purchase Ticket</h3>
+            <p>You're purchasing a ticket for: <strong id="modalPrizeName">Prize</strong></p>
+            <p>Ticket Price: $<strong id="modalPrizePrice">0</strong></p>
+            <div class="action-buttons">
+                <button class="action-btn" id="confirmPurchase">Confirm Purchase</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="withdrawModal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeWithdrawModal">&times;</span>
+            <h3 class="modal-title">Withdraw Funds</h3>
+            <div class="form-group">
+                <label for="withdrawAmount">Amount ($)</label>
+                <input type="number" id="withdrawAmount" min="1" max="100" value="10">
+            </div>
+            <div class="form-group">
+                <label for="withdrawMethod">Withdrawal Method</label>
+                <select id="withdrawMethod">
+                    <option value="bank">Bank Transfer</option>
+                    <option value="crypto">Cryptocurrency</option>
+                    <option value="paypal">PayPal</option>
+                </select>
+            </div>
+            <div class="action-buttons">
+                <button class="action-btn" id="confirmWithdraw">Confirm Withdrawal</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="addressModal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeAddressModal">&times;</span>
+            <h3 class="modal-title">Delivery Address</h3>
+            <div class="form-group">
+                <label for="fullName">Full Name</label>
+                <input type="text" id="fullName" placeholder="John Doe">
+            </div>
+            <div class="form-group">
+                <label for="streetAddress">Street Address</label>
+                <input type="text" id="streetAddress" placeholder="123 Main St">
+            </div>
+            <div class="form-group">
+                <label for="city">City</label>
+                <input type="text" id="city" placeholder="New York">
+            </div>
+            <div class="form-group">
+                <label for="zipCode">ZIP Code</label>
+                <input type="text" id="zipCode" placeholder="10001">
+            </div>
+            <div class="form-group">
+                <label for="country">Country</label>
+                <input type="text" id="country" placeholder="United States">
+            </div>
+            <div class="action-buttons">
+                <button class="action-btn" id="saveAddress">Save Address</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        const gameState = {
+            balance: 100,
+            tickets: 0,
+            selectedNumber: null,
+            selectedPrize: null,
+            numbers: Array.from({length: 50}, (_, i) => ({
+                id: i + 1,
+                available: true,
+                taken: false
+            })),
+            prizes: [
+                { name: "NFT", value: 10, ticketPrice: 10 },
+                { name: "BLUETICK", value: 6, ticketPrice: 6 },
+                { name: "HOUSE", value: 100, ticketPrice: 100 },
+                { name: "PHONE", value: 30, ticketPrice: 30 }
+            ],
+            spinning: false
+        };
+
+        // DOM Elements
+        const wheel = document.getElementById('wheel');
+        const spinBtn = document.getElementById('spinBtn');
+        const numbersGrid = document.getElementById('numbersGrid');
+        const prizesContainer = document.getElementById('prizesContainer');
+        const balanceEl = document.getElementById('balance');
+        const ticketsCountEl = document.getElementById('ticketsCount');
+        const resultMessage = document.getElementById('resultMessage');
+        const selectedPrizeInfo = document.getElementById('selectedPrizeInfo');
+        const selectedPrizeName = document.getElementById('selectedPrizeName');
+        const selectedPrizePrice = document.getElementById('selectedPrizePrice');
+        
+        // Modal elements
+        const purchaseModal = document.getElementById('purchaseModal');
+        const withdrawModal = document.getElementById('withdrawModal');
+        const addressModal = document.getElementById('addressModal');
+        const modalPrizeName = document.getElementById('modalPrizeName');
+        const modalPrizePrice = document.getElementById('modalPrizePrice');
+        
+        // Initialize the game
+        function initGame() {
+            updateUI();
+            generateNumbersGrid();
+            generatePrizesGrid();
+            
+            // Event listeners for buttons
+            document.getElementById('withdrawBtn').addEventListener('click', () => {
+                withdrawModal.style.display = 'flex';
+            });
+            
+            document.getElementById('addressBtn').addEventListener('click', () => {
+                addressModal.style.display = 'flex';
+            });
+            
+            document.getElementById('confirmPurchase').addEventListener('click', purchaseTicket);
+            document.getElementById('confirmWithdraw').addEventListener('click', withdrawFunds);
+            document.getElementById('saveAddress').addEventListener('click', saveAddress);
+            
+            // Close modal events
+            document.getElementById('closePurchaseModal').addEventListener('click', () => {
+                purchaseModal.style.display = 'none';
+            });
+            
+            document.getElementById('closeWithdrawModal').addEventListener('click', () => {
+                withdrawModal.style.display = 'none';
+            });
+            
+            document.getElementById('closeAddressModal').addEventListener('click', () => {
+                addressModal.style.display = 'none';
+            });
+            
+            // Spin button
+            spinBtn.addEventListener('click', spinWheel);
+            
+            // Close modals when clicking outside
+            window.addEventListener('click', (e) => {
+                if (e.target === purchaseModal) purchaseModal.style.display = 'none';
+                if (e.target === withdrawModal) withdrawModal.style.display = 'none';
+                if (e.target === addressModal) addressModal.style.display = 'none';
+            });
+        }
+
+        // Generate numbers grid
+        function generateNumbersGrid() {
+            numbersGrid.innerHTML = '';
+            gameState.numbers.forEach(num => {
+                const numberEl = document.createElement('div');
+                numberEl.className = `number ${num.available ? 'available' : num.taken ? 'taken' : ''}`;
+                numberEl.textContent = num.id;
+                numberEl.dataset.id = num.id;
+                
+                if (num.available) {
+                    numberEl.addEventListener('click', selectNumber);
+                }
+                
+                numbersGrid.appendChild(numberEl);
+            });
+        }
+
+        // Generate prizes grid
+        function generatePrizesGrid() {
+            prizesContainer.innerHTML = '';
+            gameState.prizes.forEach(prize => {
+                const prizeEl = document.createElement('div');
+                prizeEl.className = 'prize-item';
+                prizeEl.innerHTML = `
+                    <div class="prize-name">${prize.name}</div>
+                    <div class="prize-value">$${prize.value} Value</div>
+                    <div class="ticket-price">Ticket: $${prize.ticketPrice}</div>
+                `;
+                prizeEl.dataset.prizeId = prize.name;
+                
+                prizeEl.addEventListener('click', () => selectPrize(prize));
+                
+                prizesContainer.appendChild(prizeEl);
+            });
+        }
+
+        // Select a prize
+        function selectPrize(prize) {
+            // Remove selected class from all prizes
+            document.querySelectorAll('.prize-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked prize
+            const prizeEl = document.querySelector(`.prize-item[data-prize-id="${prize.name}"]`);
+            prizeEl.classList.add('selected');
+            
+            gameState.selectedPrize = prize;
+            
+            // Show selected prize info
+            selectedPrizeName.textContent = prize.name;
+            selectedPrizePrice.textContent = prize.ticketPrice;
+            selectedPrizeInfo.style.display = 'block';
+            
+            // Show purchase modal
+            modalPrizeName.textContent = prize.name;
+            modalPrizePrice.textContent = prize.ticketPrice;
+            purchaseModal.style.display = 'flex';
+        }
+
+        // Select a number
+        function selectNumber(e) {
+            if (!gameState.selectedPrize) {
+                showResultMessage('Please select a prize first!', 'lose');
+                return;
+            }
+            
+            if (gameState.selectedNumber) {
+                const prevSelected = document.querySelector(`.number[data-id="${gameState.selectedNumber}"]`);
+                if (prevSelected) prevSelected.classList.remove('selected');
+            }
+            
+            gameState.selectedNumber = parseInt(e.target.dataset.id);
+            e.target.classList.add('selected');
+            
+            // Enable spin button if we have tickets
+            if (gameState.tickets > 0) {
+                spinBtn.disabled = false;
+            }
+        }
+
+        // Purchase a ticket
+        function purchaseTicket() {
+            if (!gameState.selectedPrize) return;
+            
+            const ticketPrice = gameState.selectedPrize.ticketPrice;
+            
+            if (gameState.balance >= ticketPrice) {
+                gameState.balance -= ticketPrice;
+                gameState.tickets++;
+                purchaseModal.style.display = 'none';
+                updateUI();
+                
+                // Show message
+                showResultMessage(`Ticket for ${gameState.selectedPrize.name} purchased successfully! Now select a number.`, 'win');
+            } else {
+                showResultMessage(`Insufficient balance to purchase a ticket for ${gameState.selectedPrize.name}.`, 'lose');
+            }
+        }
+
+        // Withdraw funds
+        function withdrawFunds() {
+            const amount = parseInt(document.getElementById('withdrawAmount').value);
+            const method = document.getElementById('withdrawMethod').value;
+            
+            if (amount > 0 && amount <= gameState.balance) {
+                gameState.balance -= amount;
+                withdrawModal.style.display = 'none';
+                updateUI();
+                showResultMessage(`Withdrawal of $${amount} via ${method} initiated.`, 'win');
+            } else {
+                showResultMessage('Invalid withdrawal amount.', 'lose');
+            }
+        }
+
+        // Save address
+        function saveAddress() {
+            const fullName = document.getElementById('fullName').value;
+            const streetAddress = document.getElementById('streetAddress').value;
+            
+            if (fullName && streetAddress) {
+                addressModal.style.display = 'none';
+                showResultMessage('Delivery address saved successfully!', 'win');
+            } else {
+                showResultMessage('Please fill in all required fields.', 'lose');
+            }
+        }
+
+        // Spin the wheel
+        function spinWheel() {
+            if (gameState.spinning) return;
+            
+            gameState.spinning = true;
+            spinBtn.disabled = true;
+            resultMessage.textContent = '';
+            
+            // Random rotation between 5 and 10 full rotations plus a segment
+            const segments = 12; // Number of prize segments
+            const segmentAngle = 360 / segments;
+            const extraRotation = 3600 + Math.floor(Math.random() * 3600); // 10-20 full rotations
+            const winningSegment = Math.floor(Math.random() * segments);
+            const finalRotation = extraRotation + (winningSegment * segmentAngle);
+            
+            wheel.style.transform = `rotate(${finalRotation}deg)`;
+            
+            // Determine result after spin completes
+            setTimeout(() => {
+                const prizeIndex = Math.floor(Math.random() * gameState.prizes.length);
+                const prize = gameState.prizes[prizeIndex];
+                const winAmount = prize.value;
+                
+                // Check if player won their selected prize
+                const wonSelectedPrize = gameState.selectedPrize && 
+                                        gameState.selectedPrize.name === prize.name;
+                
+                if (wonSelectedPrize) {
+                    gameState.balance += winAmount;
+                    showResultMessage(`Congratulations! You won the ${prize.name} worth $${winAmount}!`, 'win');
+                } else {
+                    showResultMessage(`You didn't win your selected prize. The wheel landed on ${prize.name}.`, 'lose');
+                }
+                
+                gameState.tickets--;
+                gameState.spinning = false;
+                
+                updateUI();
+                
+                // Mark the selected number as taken
+                if (gameState.selectedNumber) {
+                    const numberIndex = gameState.numbers.findIndex(n => n.id === gameState.selectedNumber);
+                    if (numberIndex !== -1) {
+                        gameState.numbers[numberIndex].available = false;
+                        gameState.numbers[numberIndex].taken = true;
+                        generateNumbersGrid();
+                    }
+                    gameState.selectedNumber = null;
+                }
+                
+                // Reset selected prize
+                document.querySelectorAll('.prize-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                gameState.selectedPrize = null;
+                selectedPrizeInfo.style.display = 'none';
+                
+                // Disable spin button if no tickets left
+                if (gameState.tickets === 0) {
+                    spinBtn.disabled = true;
+                }
+            }, 4000);
+        }
+
+        // Show result message
+        function showResultMessage(message, type) {
+            resultMessage.textContent = message;
+            resultMessage.className = `result-message ${type}`;
+            resultMessage.style.display = 'block';
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                resultMessage.style.display = 'none';
+            }, 5000);
+        }
+
+        // Update UI
+        function updateUI() {
+            balanceEl.textContent = gameState.balance;
+            ticketsCountEl.textContent = gameState.tickets;
+        }
+
+        // Initialize the game when page loads
+        window.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
