@@ -321,6 +321,7 @@
             max-width: 500px;
             width: 90%;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            text-align: center;
         }
 
         .modal-title {
@@ -361,6 +362,13 @@
             border-radius: 10px;
             margin: 15px 0;
             text-align: center;
+        }
+
+        .numbers-status {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 1rem;
+            color: var(--light-green);
         }
 
         @media (max-width: 768px) {
@@ -412,6 +420,10 @@
                 </div>
                 
                 <button class="spin-btn" id="spinBtn" disabled>Spin the Wheel</button>
+                
+                <div class="numbers-status" id="numbersStatus">
+                    Numbers Selected: <span id="selectedCount">0</span>/<span id="totalCount">50</span>
+                </div>
                 
                 <div class="result-message" id="resultMessage"></div>
                 
@@ -520,6 +532,17 @@
         </div>
     </div>
 
+    <div class="modal" id="notificationModal">
+        <div class="modal-content">
+            <h3 class="modal-title">Thank You!</h3>
+            <p>Thank you for your purchase!</p>
+            <p>You will be notified if you win when all numbers are selected.</p>
+            <div class="action-buttons">
+                <button class="action-btn" id="closeNotificationModal">OK</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Game state
         const gameState = {
@@ -552,11 +575,14 @@
         const selectedPrizeInfo = document.getElementById('selectedPrizeInfo');
         const selectedPrizeName = document.getElementById('selectedPrizeName');
         const selectedPrizePrice = document.getElementById('selectedPrizePrice');
+        const selectedCountEl = document.getElementById('selectedCount');
+        const totalCountEl = document.getElementById('totalCount');
         
         // Modal elements
         const purchaseModal = document.getElementById('purchaseModal');
         const withdrawModal = document.getElementById('withdrawModal');
         const addressModal = document.getElementById('addressModal');
+        const notificationModal = document.getElementById('notificationModal');
         const modalPrizeName = document.getElementById('modalPrizeName');
         const modalPrizePrice = document.getElementById('modalPrizePrice');
         
@@ -565,6 +591,7 @@
             updateUI();
             generateNumbersGrid();
             generatePrizesGrid();
+            updateNumbersStatus();
             
             // Event listeners for buttons
             document.getElementById('withdrawBtn').addEventListener('click', () => {
@@ -578,6 +605,9 @@
             document.getElementById('confirmPurchase').addEventListener('click', purchaseTicket);
             document.getElementById('confirmWithdraw').addEventListener('click', withdrawFunds);
             document.getElementById('saveAddress').addEventListener('click', saveAddress);
+            document.getElementById('closeNotificationModal').addEventListener('click', () => {
+                notificationModal.style.display = 'none';
+            });
             
             // Close modal events
             document.getElementById('closePurchaseModal').addEventListener('click', () => {
@@ -600,6 +630,7 @@
                 if (e.target === purchaseModal) purchaseModal.style.display = 'none';
                 if (e.target === withdrawModal) withdrawModal.style.display = 'none';
                 if (e.target === addressModal) addressModal.style.display = 'none';
+                if (e.target === notificationModal) notificationModal.style.display = 'none';
             });
         }
 
@@ -637,6 +668,22 @@
                 
                 prizesContainer.appendChild(prizeEl);
             });
+        }
+
+        // Update numbers status
+        function updateNumbersStatus() {
+            const takenCount = gameState.numbers.filter(num => num.taken).length;
+            selectedCountEl.textContent = takenCount;
+            totalCountEl.textContent = gameState.numbers.length;
+            
+            // Enable spin button only if all numbers are taken
+            if (takenCount === gameState.numbers.length && gameState.tickets > 0) {
+                spinBtn.disabled = false;
+                spinBtn.textContent = "Spin the Wheel!";
+            } else {
+                spinBtn.disabled = true;
+                spinBtn.textContent = "Spin the Wheel";
+            }
         }
 
         // Select a prize
@@ -678,10 +725,8 @@
             gameState.selectedNumber = parseInt(e.target.dataset.id);
             e.target.classList.add('selected');
             
-            // Enable spin button if we have tickets
-            if (gameState.tickets > 0) {
-                spinBtn.disabled = false;
-            }
+            // Check if all numbers are taken
+            updateNumbersStatus();
         }
 
         // Purchase a ticket
@@ -696,8 +741,38 @@
                 purchaseModal.style.display = 'none';
                 updateUI();
                 
-                // Show message
-                showResultMessage(`Ticket for ${gameState.selectedPrize.name} purchased successfully! Now select a number.`, 'win');
+                // Mark the selected number as taken
+                if (gameState.selectedNumber) {
+                    const numberIndex = gameState.numbers.findIndex(n => n.id === gameState.selectedNumber);
+                    if (numberIndex !== -1) {
+                        gameState.numbers[numberIndex].available = false;
+                        gameState.numbers[numberIndex].taken = true;
+                        generateNumbersGrid();
+                        updateNumbersStatus();
+                    }
+                }
+                
+                // Check if all numbers are taken
+                const allNumbersTaken = gameState.numbers.every(num => num.taken);
+                
+                if (allNumbersTaken) {
+                    // All numbers are taken - enable spinning
+                    showResultMessage(`Ticket for ${gameState.selectedPrize.name} purchased! All numbers are selected. You can now spin the wheel!`, 'win');
+                    spinBtn.disabled = false;
+                } else {
+                    // Not all numbers are taken - show notification
+                    notificationModal.style.display = 'flex';
+                    showResultMessage(`Ticket for ${gameState.selectedPrize.name} purchased! Waiting for all numbers to be selected.`, 'win');
+                }
+                
+                // Reset selection
+                gameState.selectedNumber = null;
+                document.querySelectorAll('.prize-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                gameState.selectedPrize = null;
+                selectedPrizeInfo.style.display = 'none';
+                
             } else {
                 showResultMessage(`Insufficient balance to purchase a ticket for ${gameState.selectedPrize.name}.`, 'lose');
             }
@@ -735,6 +810,13 @@
         function spinWheel() {
             if (gameState.spinning) return;
             
+            // Check if all numbers are taken
+            const allNumbersTaken = gameState.numbers.every(num => num.taken);
+            if (!allNumbersTaken) {
+                showResultMessage('Cannot spin until all numbers are selected!', 'lose');
+                return;
+            }
+            
             gameState.spinning = true;
             spinBtn.disabled = true;
             resultMessage.textContent = '';
@@ -770,23 +852,13 @@
                 
                 updateUI();
                 
-                // Mark the selected number as taken
-                if (gameState.selectedNumber) {
-                    const numberIndex = gameState.numbers.findIndex(n => n.id === gameState.selectedNumber);
-                    if (numberIndex !== -1) {
-                        gameState.numbers[numberIndex].available = false;
-                        gameState.numbers[numberIndex].taken = true;
-                        generateNumbersGrid();
-                    }
-                    gameState.selectedNumber = null;
-                }
-                
-                // Reset selected prize
-                document.querySelectorAll('.prize-item').forEach(item => {
-                    item.classList.remove('selected');
+                // Reset all numbers for next round
+                gameState.numbers.forEach(num => {
+                    num.available = true;
+                    num.taken = false;
                 });
-                gameState.selectedPrize = null;
-                selectedPrizeInfo.style.display = 'none';
+                generateNumbersGrid();
+                updateNumbersStatus();
                 
                 // Disable spin button if no tickets left
                 if (gameState.tickets === 0) {
